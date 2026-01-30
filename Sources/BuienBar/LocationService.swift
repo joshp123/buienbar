@@ -43,18 +43,21 @@ final class LocationService: NSObject, ObservableObject {
         }
         if access == .authorized {
             manager.startUpdatingLocation()
+            manager.requestLocation()
         }
     }
 
     func requestLocation() {
         guard access == .authorized else { return }
         manager.startUpdatingLocation()
+        manager.requestLocation()
     }
 
     func scheduleRetry() {
         guard access == .authorized, location == nil else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
             self?.manager.startUpdatingLocation()
+            self?.manager.requestLocation()
         }
     }
 
@@ -99,6 +102,7 @@ final class LocationService: NSObject, ObservableObject {
         switch LocationAccess(status: status) {
         case .authorized:
             manager.startUpdatingLocation()
+            manager.requestLocation()
         case .denied, .restricted:
             manager.stopUpdatingLocation()
         case .notDetermined:
