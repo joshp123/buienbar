@@ -27,8 +27,10 @@ final class LocationService: NSObject, ObservableObject {
 
     func start() {
         manager.delegate = self
-        manager.desiredAccuracy = kCLLocationAccuracyKilometer
-        manager.distanceFilter = 1000
+        manager.desiredAccuracy = kCLLocationAccuracyThreeKilometers
+        manager.distanceFilter = kCLDistanceFilterNone
+        manager.pausesLocationUpdatesAutomatically = false
+        manager.activityType = .other
         servicesEnabled = CLLocationManager.locationServicesEnabled()
         if applyOverrideLocationIfNeeded() {
             return
