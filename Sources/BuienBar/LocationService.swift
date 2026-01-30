@@ -35,7 +35,11 @@ final class LocationService: NSObject, ObservableObject {
         }
         refreshAuthorizationStatus(cachedLocation: manager.location)
         if access == .authorized, location == nil, let stored = loadStoredLocation() {
-            applyLocation(stored)
+            if isLikelyOverride(stored) {
+                clearStoredLocation()
+            } else {
+                applyLocation(stored)
+            }
         }
         if access == .authorized {
             manager.requestLocation()
@@ -131,11 +135,23 @@ final class LocationService: NSObject, ObservableObject {
         UserDefaults.standard.set(location.coordinate.longitude, forKey: lastLonKey)
     }
 
+    private func clearStoredLocation() {
+        UserDefaults.standard.removeObject(forKey: lastLatKey)
+        UserDefaults.standard.removeObject(forKey: lastLonKey)
+    }
+
     private func loadStoredLocation() -> CLLocation? {
         let lat = UserDefaults.standard.double(forKey: lastLatKey)
         let lon = UserDefaults.standard.double(forKey: lastLonKey)
         guard lat != 0 || lon != 0 else { return nil }
         return CLLocation(latitude: lat, longitude: lon)
+    }
+
+    private func isLikelyOverride(_ location: CLLocation) -> Bool {
+        guard !useOverrideLocation else { return false }
+        let latDelta = abs(location.coordinate.latitude - overrideLocation.coordinate.latitude)
+        let lonDelta = abs(location.coordinate.longitude - overrideLocation.coordinate.longitude)
+        return latDelta < 0.001 && lonDelta < 0.001
     }
 }
 
