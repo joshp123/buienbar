@@ -42,12 +42,14 @@ final class LocationService: NSObject, ObservableObject {
             }
         }
         if access == .authorized {
+            manager.startUpdatingLocation()
             manager.requestLocation()
         }
     }
 
     func requestLocation() {
         guard access == .authorized else { return }
+        manager.startUpdatingLocation()
         manager.requestLocation()
     }
 
@@ -190,6 +192,10 @@ extension LocationService: CLLocationManagerDelegate {
                 self.access = .denied
                 self.location = nil
                 self.manager.stopUpdatingLocation()
+                return
+            }
+            if clError?.code == .locationUnknown {
+                self.scheduleRetry()
                 return
             }
             self.manager.stopUpdatingLocation()
