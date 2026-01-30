@@ -27,10 +27,8 @@ final class LocationService: NSObject, ObservableObject {
 
     func start() {
         manager.delegate = self
-        manager.desiredAccuracy = kCLLocationAccuracyThreeKilometers
-        manager.distanceFilter = kCLDistanceFilterNone
-        manager.pausesLocationUpdatesAutomatically = false
-        manager.activityType = .other
+        manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+        manager.distanceFilter = 50
         servicesEnabled = CLLocationManager.locationServicesEnabled()
         if applyOverrideLocationIfNeeded() {
             return
@@ -45,20 +43,18 @@ final class LocationService: NSObject, ObservableObject {
         }
         if access == .authorized {
             manager.startUpdatingLocation()
-            manager.requestLocation()
         }
     }
 
     func requestLocation() {
         guard access == .authorized else { return }
         manager.startUpdatingLocation()
-        manager.requestLocation()
     }
 
     func scheduleRetry() {
         guard access == .authorized, location == nil else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
-            self?.manager.requestLocation()
+            self?.manager.startUpdatingLocation()
         }
     }
 
@@ -102,7 +98,6 @@ final class LocationService: NSObject, ObservableObject {
         applyAccess(status, cachedLocation: cachedLocation)
         switch LocationAccess(status: status) {
         case .authorized:
-            manager.requestLocation()
             manager.startUpdatingLocation()
         case .denied, .restricted:
             manager.stopUpdatingLocation()
@@ -188,8 +183,8 @@ extension LocationService: CLLocationManagerDelegate {
         Task { @MainActor [weak self] in
             guard let self else { return }
             let description = clError.map { "\($0.code.rawValue) \($0.localizedDescription)" } ?? error.localizedDescription
-            self.lastError = description
             if clError?.code == .denied {
+                self.lastError = description
                 self.rawAuthorizationStatus = .denied
                 self.access = .denied
                 self.location = nil
@@ -197,9 +192,11 @@ extension LocationService: CLLocationManagerDelegate {
                 return
             }
             if clError?.code == .locationUnknown {
+                self.lastError = nil
                 self.scheduleRetry()
                 return
             }
+            self.lastError = description
             self.manager.stopUpdatingLocation()
             self.scheduleRetry()
         }
