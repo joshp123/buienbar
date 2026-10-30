@@ -45,13 +45,10 @@ fi
 
 log "==> package app"
 SIGNING_MODE_VALUE=${SIGNING_MODE:-}
-CERT_NAME="${APP_NAME} Development"
 APPLE_IDENTITY="$(security find-identity -p codesigning -v 2>/dev/null | awk -F\" '/Apple Development/ {print $2; exit}')"
 if [[ -z "${APP_IDENTITY:-}" ]]; then
   if [[ -n "${APPLE_IDENTITY}" ]]; then
     APP_IDENTITY="${APPLE_IDENTITY}"
-  elif security find-identity -p codesigning -v 2>/dev/null | grep -q "${CERT_NAME}"; then
-    APP_IDENTITY="${CERT_NAME}"
   else
     SIGNING_MODE_VALUE=adhoc
   fi

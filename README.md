@@ -14,15 +14,8 @@ Tiny macOS menu bar app that tells you if rain is coming soon using Buienradar p
 
 Grant location access when prompted (use the “Allow Location” button if needed).
 
-### Fix repeated location prompts (dev signing)
-`compile_and_run.sh` will automatically use a trusted “BuienBar Development” certificate when it exists. If macOS asks every launch, create one:
-
-```bash
-./Scripts/setup_dev_signing.sh
-# Trust the certificate in Keychain Access (Code Signing)
-export APP_IDENTITY="BuienBar Development"
-./Scripts/compile_and_run.sh
-```
+### Location prompts (dev signing)
+`compile_and_run.sh` signs with your Apple Development certificate, so macOS keeps the location permission across rebuilds.
 
 ## What it shows
 - Menu bar icon (rain in N minutes or sparkline, toggle in popover)
