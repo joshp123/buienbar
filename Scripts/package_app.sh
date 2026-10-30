@@ -78,10 +78,7 @@ PLIST
 build_product_path() {
   local name="$1"
   local arch="$2"
-  case "$arch" in
-    arm64|x86_64) echo ".build/${arch}-apple-macosx/$CONF/$name" ;;
-    *) echo ".build/$CONF/$name" ;;
-  esac
+  echo "$(swift build -c "$CONF" --arch "$arch" --show-bin-path)/$name"
 }
 
 verify_binary_arches() {
@@ -146,7 +143,7 @@ if [[ ${#SWIFTPM_BUNDLES[@]} -gt 0 ]]; then
 fi
 
 # Embed frameworks if any exist in the build folder.
-FRAMEWORK_DIRS=(".build/$CONF" ".build/${ARCH_LIST[0]}-apple-macosx/$CONF")
+FRAMEWORK_DIRS=("$(swift build -c "$CONF" --arch "${ARCH_LIST[0]}" --show-bin-path)")
 for dir in "${FRAMEWORK_DIRS[@]}"; do
   if compgen -G "${dir}/*.framework" >/dev/null; then
     cp -R "${dir}/"*.framework "$APP/Contents/Frameworks/"
@@ -186,8 +183,11 @@ fi
 
 if [[ "$SIGNING_MODE" == "adhoc" || -z "$APP_IDENTITY" ]]; then
   CODESIGN_ARGS=(--force --sign "-")
+  APP_CODESIGN_ARGS=("${CODESIGN_ARGS[@]}")
 else
   CODESIGN_ARGS=(--force --timestamp --options runtime --sign "$APP_IDENTITY")
+  # Checks the team, not the certificate's name, so renewals keep macOS permissions.
+  APP_CODESIGN_ARGS=("${CODESIGN_ARGS[@]}" -r="designated => identifier \"${BUNDLE_ID}\" and anchor apple generic and certificate leaf[subject.OU] = \"7M8BR7R488\" and certificate 1[field.1.2.840.113635.100.6.2.1]")
 fi
 
 # Sign embedded frameworks and their nested binaries before the app bundle.
@@ -205,7 +205,7 @@ sign_frameworks() {
 }
 sign_frameworks
 
-codesign "${CODESIGN_ARGS[@]}" \
+codesign "${APP_CODESIGN_ARGS[@]}" \
   --entitlements "$APP_ENTITLEMENTS" \
   "$APP"
 
